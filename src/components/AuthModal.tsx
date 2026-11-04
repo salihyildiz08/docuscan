@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Check, Gift, Mail, ArrowRight } from 'lucide-react';
+import { X, Sparkles, Check, Gift } from 'lucide-react';
 import type { UserProfile } from '../types/auth';
 import {
   signInWithGoogle,
   signInWithApple,
-  signInWithDirectEmail,
   getCurrentUser,
 } from '../services/authService';
 
@@ -21,7 +20,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [emailInput, setEmailInput] = useState<string>('yldzsalih27@gmail.com');
 
   const handleOAuthLogin = async (provider: 'google' | 'apple') => {
     setIsLoading(true);
@@ -30,9 +28,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     try {
       const res = provider === 'google' ? await signInWithGoogle() : await signInWithApple();
       if (res.error) {
-        if (res.error.toLowerCase().includes('provider is not enabled') || res.error.toLowerCase().includes('unsupported provider')) {
+        if (
+          res.error.toLowerCase().includes('provider is not enabled') ||
+          res.error.toLowerCase().includes('unsupported provider')
+        ) {
           setErrorMsg(
-            `${provider === 'google' ? 'Google' : 'Apple'} sağlayıcısı Supabase panelinizde henüz aktif edilmemiş. Aşağıdaki kutudan e-postanızla tek tıkla giriş yapabilirsiniz.`
+            `${provider === 'google' ? 'Google' : 'Apple'} sağlayıcısı Supabase panelinizde henüz aktif edilmemiş.`
           );
         } else {
           setErrorMsg(res.error);
@@ -55,32 +56,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!emailInput.trim()) return;
-
-    setIsLoading(true);
-    setErrorMsg(null);
-
-    try {
-      const res = await signInWithDirectEmail(emailInput);
-      if (res.error) {
-        setErrorMsg(res.error);
-        return;
-      }
-
-      if (res.user) {
-        onSuccess(res.user);
-        onClose();
-      }
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Giriş hatası';
-      setErrorMsg(msg);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -88,7 +63,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl flex flex-col items-center text-center gap-5 relative">
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition"
+          className="absolute top-5 right-5 p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -104,7 +79,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             DocuScan'e Hoş Geldiniz
           </h3>
           <p className="text-xs sm:text-sm text-slate-400">
-            Hesabınızla tek tıkla giriş yapın veya ücretsiz kaydolun
+            Hesabınızla tek tıkla güvenli giriş yapın
           </p>
         </div>
 
@@ -129,7 +104,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <button
             onClick={() => handleOAuthLogin('google')}
             disabled={isLoading}
-            className="w-full py-3.5 px-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm shadow-xl flex items-center justify-center gap-3 transition active:scale-95 disabled:opacity-50"
+            className="w-full py-3.5 px-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm shadow-xl flex items-center justify-center gap-3 transition active:scale-95 disabled:opacity-50 cursor-pointer"
           >
             {/* Google G Logo */}
             <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -157,7 +132,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <button
             onClick={() => handleOAuthLogin('apple')}
             disabled={isLoading}
-            className="w-full py-3.5 px-4 rounded-2xl bg-black hover:bg-slate-950 text-white font-bold text-sm shadow-xl flex items-center justify-center gap-3 transition active:scale-95 disabled:opacity-50 border border-slate-700"
+            className="w-full py-3.5 px-4 rounded-2xl bg-black hover:bg-slate-950 text-white font-bold text-sm shadow-xl flex items-center justify-center gap-3 transition active:scale-95 disabled:opacity-50 border border-slate-700 cursor-pointer"
           >
             {/* Apple Logo */}
             <svg className="w-5 h-5 fill-current" viewBox="0 0 170 170">
@@ -166,39 +141,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <span>{isLoading ? 'Bağlanıyor...' : 'Apple ile Devam Et'}</span>
           </button>
         </div>
-
-        {/* Divider */}
-        <div className="flex items-center gap-3 w-full my-1">
-          <div className="h-px bg-slate-800 flex-1" />
-          <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">
-            veya e-posta ile
-          </span>
-          <div className="h-px bg-slate-800 flex-1" />
-        </div>
-
-        {/* In-Modal Direct Email Form (No browser popups!) */}
-        <form onSubmit={handleEmailSubmit} className="w-full flex flex-col gap-2.5">
-          <div className="relative">
-            <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="email"
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              placeholder="ornek@gmail.com"
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-50"
-          >
-            <span>E-posta ile Hemen Başla</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </form>
 
         {errorMsg && (
           <div className="text-xs text-amber-300 bg-amber-950/40 p-3 rounded-xl border border-amber-800/50 w-full text-left leading-relaxed">
