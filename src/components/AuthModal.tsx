@@ -21,7 +21,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [emailInput, setEmailInput] = useState<string>('salih.yildiz@gmail.com');
+  const [emailInput, setEmailInput] = useState<string>('yldzsalih27@gmail.com');
 
   const handleOAuthLogin = async (provider: 'google' | 'apple') => {
     setIsLoading(true);

@@ -294,7 +294,10 @@ export function initAuthListener(onUserChange: (user: UserProfile | null) => voi
         session.user.user_metadata?.name ||
         email.split('@')[0].toUpperCase();
       const avatarUrl = session.user.user_metadata?.avatar_url;
-      const isAdmin = email === 'salih.yildiz@gmail.com' || email.includes('admin');
+      const isAdmin =
+        email.toLowerCase() === 'yldzsalih27@gmail.com' ||
+        email.toLowerCase() === 'salih.yildiz@gmail.com' ||
+        email.toLowerCase().includes('admin');
 
       const existing = getAllUsers().find((u) => u.email.toLowerCase() === email.toLowerCase());
       const user = existing || createUserWithTrial(email, name, avatarUrl, isAdmin ? 'admin' : 'user');
@@ -311,7 +314,10 @@ export function initAuthListener(onUserChange: (user: UserProfile | null) => voi
         session.user.user_metadata?.name ||
         email.split('@')[0].toUpperCase();
       const avatarUrl = session.user.user_metadata?.avatar_url;
-      const isAdmin = email === 'salih.yildiz@gmail.com' || email.includes('admin');
+      const isAdmin =
+        email.toLowerCase() === 'yldzsalih27@gmail.com' ||
+        email.toLowerCase() === 'salih.yildiz@gmail.com' ||
+        email.toLowerCase().includes('admin');
 
       const existing = getAllUsers().find((u) => u.email.toLowerCase() === email.toLowerCase());
       const user = existing || createUserWithTrial(email, name, avatarUrl, isAdmin ? 'admin' : 'user');

@@ -76,7 +76,7 @@ BEGIN
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
     NEW.raw_user_meta_data->>'avatar_url',
-    CASE WHEN NEW.email = 'salih.yildiz@gmail.com' THEN 'admin' ELSE 'user' END,
+    CASE WHEN NEW.email IN ('yldzsalih27@gmail.com', 'salih.yildiz@gmail.com') THEN 'admin' ELSE 'user' END,
     true,
     now_ms + trial_days_ms,
     now_ms + trial_days_ms,
