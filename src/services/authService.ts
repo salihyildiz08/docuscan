@@ -1,8 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import type { UserProfile, Coupon, PricingPlan } from '../types/auth';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const DEFAULT_SUPABASE_URL = 'https://fyucqjcvnmpqljbhridu.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_KvTB2jpo2s3yzQ1BmkKW3w_qKH3HUjl';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
@@ -219,7 +222,7 @@ export function createUserWithTrial(email: string, name: string, avatarUrl?: str
 }
 
 /**
- * Google Sign-in trigger (Live Supabase OAuth or Instant Demo Provider)
+ * Google Sign-in trigger (Live Supabase OAuth)
  */
 export async function signInWithGoogle(): Promise<{ error?: string }> {
   if (isSupabaseConfigured && supabase) {
@@ -232,27 +235,7 @@ export async function signInWithGoogle(): Promise<{ error?: string }> {
     if (error) return { error: error.message };
     return {};
   }
-
-  // Standalone Google Login simulation for instant testing
-  const mockEmail = prompt('Google Hesabınızla Giriş Yapın (E-Posta Adresinizi Girin):', 'salih.yildiz@gmail.com');
-  if (!mockEmail || !mockEmail.trim()) {
-    return { error: 'Giriş iptal edildi.' };
-  }
-
-  const cleanEmail = mockEmail.trim().toLowerCase();
-  const name = cleanEmail.split('@')[0].replace(/[._]/g, ' ').toUpperCase();
-
-  // Check if user already exists
-  const existing = getAllUsers().find((u) => u.email.toLowerCase() === cleanEmail);
-  if (existing) {
-    setCurrentUser(existing);
-  } else {
-    // First time login: Grants 7-day free trial
-    const isAdmin = cleanEmail.includes('salih') || cleanEmail.includes('admin') || cleanEmail.startsWith('it');
-    createUserWithTrial(cleanEmail, name, undefined, isAdmin ? 'admin' : 'user');
-  }
-
-  return {};
+  return { error: 'Supabase yapılandırması bulunamadı.' };
 }
 
 /**
@@ -269,25 +252,79 @@ export async function signInWithApple(): Promise<{ error?: string }> {
     if (error) return { error: error.message };
     return {};
   }
+  return { error: 'Supabase yapılandırması bulunamadı.' };
+}
 
-  // Standalone Apple Login simulation
-  const mockEmail = prompt('Apple Kimliğinizle Giriş Yapın (E-Posta Adresinizi Girin):', 'salih.yildiz@icloud.com');
-  if (!mockEmail || !mockEmail.trim()) {
-    return { error: 'Giriş iptal edildi.' };
+/**
+ * Direct Email Sign-In (Clean in-modal login, no alerts, grants 7-day trial)
+ */
+export async function signInWithDirectEmail(emailInput: string): Promise<{ error?: string; user?: UserProfile }> {
+  const cleanEmail = emailInput.trim().toLowerCase();
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    return { error: 'Lütfen geçerli bir e-posta adresi girin.' };
   }
 
-  const cleanEmail = mockEmail.trim().toLowerCase();
   const name = cleanEmail.split('@')[0].replace(/[._]/g, ' ').toUpperCase();
+  const isAdmin = cleanEmail.includes('salih') || cleanEmail.includes('admin') || cleanEmail.startsWith('it');
 
+  // Check if user already exists
   const existing = getAllUsers().find((u) => u.email.toLowerCase() === cleanEmail);
   if (existing) {
     setCurrentUser(existing);
-  } else {
-    const isAdmin = cleanEmail.includes('salih') || cleanEmail.includes('admin') || cleanEmail.startsWith('it');
-    createUserWithTrial(cleanEmail, name, undefined, isAdmin ? 'admin' : 'user');
+    return { user: existing };
   }
 
-  return {};
+  // Create new user with 7-day free trial
+  const newUser = createUserWithTrial(cleanEmail, name, undefined, isAdmin ? 'admin' : 'user');
+  return { user: newUser };
+}
+
+/**
+ * Listen for Supabase OAuth redirects (e.g. returning from Google login)
+ */
+export function initAuthListener(onUserChange: (user: UserProfile | null) => void): () => void {
+  if (!supabase) return () => {};
+
+  // Check current session on load
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session?.user) {
+      const email = session.user.email || '';
+      const name =
+        session.user.user_metadata?.full_name ||
+        session.user.user_metadata?.name ||
+        email.split('@')[0].toUpperCase();
+      const avatarUrl = session.user.user_metadata?.avatar_url;
+      const isAdmin = email === 'salih.yildiz@gmail.com' || email.includes('admin');
+
+      const existing = getAllUsers().find((u) => u.email.toLowerCase() === email.toLowerCase());
+      const user = existing || createUserWithTrial(email, name, avatarUrl, isAdmin ? 'admin' : 'user');
+      setCurrentUser(user);
+      onUserChange(user);
+    }
+  });
+
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    if (session?.user) {
+      const email = session.user.email || '';
+      const name =
+        session.user.user_metadata?.full_name ||
+        session.user.user_metadata?.name ||
+        email.split('@')[0].toUpperCase();
+      const avatarUrl = session.user.user_metadata?.avatar_url;
+      const isAdmin = email === 'salih.yildiz@gmail.com' || email.includes('admin');
+
+      const existing = getAllUsers().find((u) => u.email.toLowerCase() === email.toLowerCase());
+      const user = existing || createUserWithTrial(email, name, avatarUrl, isAdmin ? 'admin' : 'user');
+      setCurrentUser(user);
+      onUserChange(user);
+    } else {
+      // If signed out from Supabase
+    }
+  });
+
+  return () => {
+    subscription.unsubscribe();
+  };
 }
 
 export function signOut(): void {

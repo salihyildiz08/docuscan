@@ -32,7 +32,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { UpgradeModal } from './components/UpgradeModal';
 import { AuthModal } from './components/AuthModal';
 import { generatePdf, downloadBlob } from './utils/pdfExport';
-import { getCurrentUser, signOut, isUserProActive } from './services/authService';
+import { getCurrentUser, signOut, isUserProActive, initAuthListener } from './services/authService';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
@@ -76,6 +76,16 @@ export const App: React.FC = () => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 3000);
   };
+
+  useEffect(() => {
+    const unsubscribe = initAuthListener((user) => {
+      if (user) {
+        setCurrentUser(user);
+        notify(`Hoş geldiniz, ${user.name}! (7 Günlük Deneme Aktif)`);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (pages.length > 0 && selectedPageIndex >= pages.length) {

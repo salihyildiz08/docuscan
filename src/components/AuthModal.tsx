@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Check, Gift } from 'lucide-react';
+import { X, Sparkles, Check, Gift, Mail, ArrowRight } from 'lucide-react';
 import type { UserProfile } from '../types/auth';
-import { signInWithGoogle, signInWithApple, getCurrentUser } from '../services/authService';
+import {
+  signInWithGoogle,
+  signInWithApple,
+  signInWithDirectEmail,
+  getCurrentUser,
+} from '../services/authService';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -16,23 +21,56 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [emailInput, setEmailInput] = useState<string>('salih.yildiz@gmail.com');
 
-  const handleLogin = async (provider: 'google' | 'apple') => {
+  const handleOAuthLogin = async (provider: 'google' | 'apple') => {
     setIsLoading(true);
     setErrorMsg(null);
 
     try {
       const res = provider === 'google' ? await signInWithGoogle() : await signInWithApple();
       if (res.error) {
-        setErrorMsg(res.error);
+        if (res.error.toLowerCase().includes('provider is not enabled') || res.error.toLowerCase().includes('unsupported provider')) {
+          setErrorMsg(
+            `${provider === 'google' ? 'Google' : 'Apple'} sağlayıcısı Supabase panelinizde henüz aktif edilmemiş. Aşağıdaki kutudan e-postanızla tek tıkla giriş yapabilirsiniz.`
+          );
+        } else {
+          setErrorMsg(res.error);
+        }
         setIsLoading(false);
         return;
       }
 
-      // Check current user
+      // Check current user if resolved synchronously
       const user = getCurrentUser();
       if (user) {
         onSuccess(user);
+        onClose();
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Giriş hatası';
+      setErrorMsg(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailInput.trim()) return;
+
+    setIsLoading(true);
+    setErrorMsg(null);
+
+    try {
+      const res = await signInWithDirectEmail(emailInput);
+      if (res.error) {
+        setErrorMsg(res.error);
+        return;
+      }
+
+      if (res.user) {
+        onSuccess(res.user);
         onClose();
       }
     } catch (e: unknown) {
@@ -66,7 +104,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             DocuScan'e Hoş Geldiniz
           </h3>
           <p className="text-xs sm:text-sm text-slate-400">
-            Google hesabınızla tek tıkla giriş yapın veya kayıt olun
+            Hesabınızla tek tıkla giriş yapın veya ücretsiz kaydolun
           </p>
         </div>
 
@@ -85,11 +123,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         </div>
 
-        {/* Login Buttons */}
+        {/* OAuth Buttons */}
         <div className="flex flex-col gap-3 w-full">
           {/* Google Login Button */}
           <button
-            onClick={() => handleLogin('google')}
+            onClick={() => handleOAuthLogin('google')}
             disabled={isLoading}
             className="w-full py-3.5 px-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm shadow-xl flex items-center justify-center gap-3 transition active:scale-95 disabled:opacity-50"
           >
@@ -112,12 +150,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.61l4.02 3.15c.95-2.85 3.6-4.96 6.73-4.96z"
               />
             </svg>
-            <span>{isLoading ? 'Giriş Yapılıyor...' : 'Google ile Devam Et'}</span>
+            <span>{isLoading ? 'Bağlanıyor...' : 'Google ile Devam Et'}</span>
           </button>
 
-          {/* Apple Login Button (App Store Compliance) */}
+          {/* Apple Login Button */}
           <button
-            onClick={() => handleLogin('apple')}
+            onClick={() => handleOAuthLogin('apple')}
             disabled={isLoading}
             className="w-full py-3.5 px-4 rounded-2xl bg-black hover:bg-slate-950 text-white font-bold text-sm shadow-xl flex items-center justify-center gap-3 transition active:scale-95 disabled:opacity-50 border border-slate-700"
           >
@@ -125,17 +163,50 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <svg className="w-5 h-5 fill-current" viewBox="0 0 170 170">
               <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.5-7.7-11.44-13.98-5.38-8.48-9.74-18.06-13.08-28.74-3.34-10.68-5.01-20.9-5.01-30.65 0-14.15 3.56-25.99 10.68-35.52 7.12-9.53 16.14-14.38 27.06-14.55 5.01 0 10.63 1.28 16.86 3.84 6.23 2.56 10.16 3.84 11.79 3.84 1.41 0 5.44-1.33 12.09-3.99 6.65-2.66 12.35-3.83 17.1-3.51 12.19.64 22.14 4.89 29.85 12.74-10.68 6.42-15.91 15.34-15.69 26.77.22 8.92 3.65 16.36 10.3 22.32 6.65 5.96 14.54 9.53 23.68 10.72-2.39 7.4-5.34 14.76-8.84 22.08zm-33.15-115.38c0 6.64-2.4 12.92-7.21 17.84-4.81 4.92-10.67 7.76-17.58 7.76-.22-.87-.33-1.85-.33-2.94 0-6.64 2.51-12.87 7.53-17.69 5.02-4.82 10.9-7.53 17.26-7.85.22.98.33 1.94.33 2.88z" />
             </svg>
-            <span>{isLoading ? 'Giriş Yapılıyor...' : 'Apple ile Devam Et'}</span>
+            <span>{isLoading ? 'Bağlanıyor...' : 'Apple ile Devam Et'}</span>
           </button>
         </div>
 
+        {/* Divider */}
+        <div className="flex items-center gap-3 w-full my-1">
+          <div className="h-px bg-slate-800 flex-1" />
+          <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">
+            veya e-posta ile
+          </span>
+          <div className="h-px bg-slate-800 flex-1" />
+        </div>
+
+        {/* In-Modal Direct Email Form (No browser popups!) */}
+        <form onSubmit={handleEmailSubmit} className="w-full flex flex-col gap-2.5">
+          <div className="relative">
+            <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="email"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              placeholder="ornek@gmail.com"
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-50"
+          >
+            <span>E-posta ile Hemen Başla</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </form>
+
         {errorMsg && (
-          <div className="text-xs text-rose-400 bg-rose-950/40 p-2.5 rounded-xl border border-rose-900/40 w-full">
+          <div className="text-xs text-amber-300 bg-amber-950/40 p-3 rounded-xl border border-amber-800/50 w-full text-left leading-relaxed">
             {errorMsg}
           </div>
         )}
 
-        <div className="flex items-center gap-4 text-[11px] text-slate-400">
+        <div className="flex items-center justify-center gap-4 text-[11px] text-slate-400 mt-1">
           <span className="flex items-center gap-1">
             <Check className="w-3.5 h-3.5 text-emerald-400" /> %100 Güvenli
           </span>
@@ -143,7 +214,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <Check className="w-3.5 h-3.5 text-emerald-400" /> Tek Tıkla Giriş
           </span>
           <span className="flex items-center gap-1">
-            <Check className="w-3.5 h-3.5 text-emerald-400" /> 7 Gün Ücretsiz
+            <Check className="w-3.5 h-3.5 text-emerald-400" /> 7 Gün Hediye
           </span>
         </div>
       </div>
