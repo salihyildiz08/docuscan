@@ -65,7 +65,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const codeToUse = (newCode.trim() || `DOCU-${Math.random().toString(36).substring(2, 6).toUpperCase()}`).toUpperCase();
 
     if (coupons.some((c) => c.code === codeToUse)) {
-      alert('Bu kupon kodu zaten mevcut!');
+      notify('Hata: Bu kupon kodu zaten mevcut!');
       return;
     }
 
