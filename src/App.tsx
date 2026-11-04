@@ -95,6 +95,12 @@ export const App: React.FC = () => {
 
   // Handle single camera capture
   const handleCameraCapture = (imageDataUrl: string) => {
+    if (!currentUser) {
+      setIsAuthOpen(true);
+      notify('Belge tarayabilmek için lütfen önce giriş yapın.');
+      return;
+    }
+
     setCropTarget({
       pageIndex: pages.length,
       imageDataUrl,
@@ -104,6 +110,12 @@ export const App: React.FC = () => {
 
   // Handle single file upload
   const handleFileSelect = (file: File | null) => {
+    if (!currentUser) {
+      setIsAuthOpen(true);
+      notify('Belge yükleyebilmek için lütfen önce giriş yapın.');
+      return;
+    }
+
     if (!file) return;
 
     const reader = new FileReader();
@@ -288,6 +300,12 @@ export const App: React.FC = () => {
 
   // Export as multi-page PDF
   const handleExportPdf = async () => {
+    if (!currentUser) {
+      setIsAuthOpen(true);
+      notify('PDF indirebilmek için lütfen önce giriş yapın.');
+      return;
+    }
+
     if (pages.length === 0) return;
 
     setIsExportingPdf(true);
@@ -306,6 +324,12 @@ export const App: React.FC = () => {
 
   // Export as ZIP of images
   const handleExportZip = async () => {
+    if (!currentUser) {
+      setIsAuthOpen(true);
+      notify('Görselleri indirebilmek için lütfen önce giriş yapın.');
+      return;
+    }
+
     if (pages.length === 0) return;
 
     try {
@@ -559,7 +583,63 @@ export const App: React.FC = () => {
 
       {/* Main Workspace */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col">
-        {pages.length === 0 ? (
+        {!currentUser ? (
+          /* Strict Auth Gate: User MUST log in before doing anything */
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-6 sm:p-12 border border-slate-800 rounded-3xl bg-slate-900/60 shadow-2xl my-auto max-w-xl mx-auto w-full">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center mb-5 shadow-xl shadow-emerald-500/20 text-white">
+              <Sparkles className="w-10 h-10" />
+            </div>
+
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
+              DocuScan Akıllı Tarayıcı
+            </h2>
+            <p className="text-slate-400 text-xs sm:text-sm max-w-md mb-6 leading-relaxed">
+              Belge taramak, 3D bükülme düzeltmek ve yüksek kaliteli A4 PDF üretmek için lütfen giriş yapın.
+            </p>
+
+            {/* 7-Day Free Trial Banner */}
+            <div className="w-full p-4 rounded-2xl bg-gradient-to-r from-emerald-950/80 to-teal-950/80 border border-emerald-500/40 text-left flex items-start gap-3 mb-6 shadow-lg shadow-emerald-950/30">
+              <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0 mt-0.5">
+                <Gift className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-white mb-1">
+                  🎁 İlk 1 Hafta Tamamen Ücretsiz!
+                </h4>
+                <p className="text-[11px] sm:text-xs text-emerald-300/90 leading-relaxed">
+                  Kayıt olan tüm kullanıcılara 7 gün boyunca tüm PRO özellikler (Sihirli Renk filtresi, 3D eğrilik düzeltme ve sınırsız PDF dışa aktarma) anında hediye edilir. Kredi kartı gerekmez.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsAuthOpen(true)}
+              className="w-full py-4 px-6 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm sm:text-base shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2.5 transition active:scale-95"
+            >
+              <User className="w-5 h-5 fill-current" />
+              <span>Giriş Yap / 7 Gün Ücretsiz Başla</span>
+            </button>
+
+            {/* Security & Feature Badges */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-8 w-full text-left">
+              <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 mb-1" />
+                <h5 className="text-[11px] font-bold text-white">%100 Güvenli</h5>
+                <p className="text-[10px] text-slate-400">Verileriniz sunucuya gitmez, cihazda işlenir.</p>
+              </div>
+              <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800">
+                <Sparkles className="w-4 h-4 text-teal-400 mb-1" />
+                <h5 className="text-[11px] font-bold text-white">Sihirli Renk</h5>
+                <p className="text-[10px] text-slate-400">Gölgeleri temizler, stüdyo çıktısı verir.</p>
+              </div>
+              <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800">
+                <Crown className="w-4 h-4 text-amber-400 mb-1" />
+                <h5 className="text-[11px] font-bold text-white">Kupon Desteği</h5>
+                <p className="text-[10px] text-slate-400">Tek kullanımlık kodlarla sınırsız Pro üyelik.</p>
+              </div>
+            </div>
+          </div>
+        ) : pages.length === 0 ? (
           /* Empty State: Prompt user to scan or upload */
           <div className="flex-1 flex flex-col items-center justify-center text-center p-6 sm:p-12 border-2 border-dashed border-slate-800 rounded-3xl bg-slate-900/40 my-auto">
             <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-6 shadow-xl shadow-emerald-500/10">
